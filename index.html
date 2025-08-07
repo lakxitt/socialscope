@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SocialScope - OSINT Username Scanner</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- SwiperJS (Carousel) CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        /* --- "Nebula" Theme Variables --- */
+        :root {
+            --bg-dark: #0B0F19;
+            --panel-bg: rgba(23, 29, 48, 0.5);
+            --border-color: rgba(0, 229, 255, 0.2);
+            --glow-cyan: #00E5FF;
+            --glow-magenta: #FF00E5;
+            --glow-purple: #BE4BFF;
+            --glow-red: #FF3B5C;
+            --glow-green: #00FFAB;
+            --text-primary: #E0E6F1;
+            --text-secondary: #8892B0;
+            /* Using Poppins as the main body font */
+            --font-body: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* --- Slideshow Background --- */
+        .slideshow {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -2;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .slideshow li {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-size: cover;
+            background-position: 50% 50%;
+            background-repeat: no-repeat;
+            opacity: 0;
+            animation: imageAnimation 12s linear infinite; 
+        }
+        .slideshow li:nth-child(1) { background-image: url(https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D); }
+        .slideshow li:nth-child(2) { background-image: url(https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D); animation-delay: 3s; } 
+        .slideshow li:nth-child(3) { background-image: url(https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D); animation-delay: 6s; } 
+        .slideshow li:nth-child(4) { background-image: url(https://images.unsplash.com/photo-1502134249126-9f3755a50d78?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D); animation-delay: 9s; } 
+        
+        @keyframes imageAnimation { 
+            0% { opacity: 0; animation-timing-function: ease-in; }
+            8% { opacity: 1; }
+            25% { opacity: 1; }
+            33% { opacity: 0; }
+            100% { opacity: 0; }
+        }
+        .slideshow-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(11, 15, 25, 0.6); 
+            z-index: -1;
+        }
+
+
+        /* --- Frosted Glass Panel Style --- */
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 1.5rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 229, 255, 0.1);
+        }
+
+        /* --- UI Components Styling --- */
+        .input-wrapper {
+            position: relative;
+            background: linear-gradient(45deg, var(--glow-cyan), var(--glow-purple));
+            padding: 3px;
+            border-radius: 0.85rem;
+        }
+        .input-field { 
+            background-color: #111827; 
+            border: none;
+            transition: all 0.3s; 
+            border-radius: 0.75rem;
+        }
+        .input-field:focus { 
+            box-shadow: none;
+        }
+        .scan-button { 
+            background-image: linear-gradient(45deg, var(--glow-cyan), var(--glow-purple));
+            border: none;
+            color: white;
+            text-shadow: 0 0 5px rgba(0,0,0,0.5);
+            transition: all 0.3s; 
+            border-radius: 0.75rem;
+            animation: pulse-glow 2s infinite;
+        }
+        .scan-button:hover { 
+            transform: scale(1.05); 
+            box-shadow: 0 0 30px var(--glow-cyan);
+        }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 10px var(--glow-cyan); }
+            50% { box-shadow: 0 0 25px var(--glow-cyan); }
+            100% { box-shadow: 0 0 10px var(--glow-cyan); }
+        }
+
+        /* --- Scramble Text Loader --- */
+        #scan-effect {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            letter-spacing: 4px;
+            color: var(--glow-cyan);
+            text-shadow: 0 0 10px var(--glow-cyan);
+        }
+        
+        /* --- Result Card Styling --- */
+        .result-card { transition: all 0.4s ease; border: 1px solid var(--border-color); }
+        .result-card:hover { transform: translateY(-8px); border-color: var(--glow-cyan); }
+        .result-card.found { border-color: var(--glow-green); box-shadow: 0 0 15px rgba(0, 255, 171, 0.3); }
+        .result-card.not-found { filter: grayscale(50%); opacity: 0.6; }
+        
+        /* --- Swiper on Mobile --- */
+        .swiper-button-next, .swiper-button-prev { color: var(--glow-cyan); }
+        
+        /* --- Title Styling & Animation --- */
+        #main-title {
+            font-family: var(--font-body);
+        }
+        #main-title .char {
+            display: inline-block;
+            opacity: 0;
+            transform: translateY(-150%) rotate(10deg);
+            animation: drop-in 0.6s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+        }
+
+        @keyframes drop-in {
+            from {
+                transform: translateY(-150%) rotate(10deg);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+        }
+
+    </style>
+</head>
+<body class="transition-colors duration-300">
+    <ul class="slideshow">
+        <li></li><li></li><li></li><li></li>
+    </ul>
+    <div class="slideshow-overlay"></div>
+
+    <!-- Main Container -->
+    <div class="relative container mx-auto p-4 md:p-8 min-h-screen flex flex-col">
+
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <div class="flex items-center justify-center gap-4">
+                <!-- Changed logo back to satellite dish -->
+                <i class="fas fa-satellite-dish text-5xl md:text-6xl" style="color: var(--glow-cyan);"></i>
+                <!-- Decreased text size -->
+                <h1 id="main-title" class="text-5xl md:text-7xl font-bold tracking-wider" style="color: var(--text-primary);">
+                    <!-- Letters will be injected here by JS for the animation -->
+                </h1>
+            </div>
+            <p class="mt-2 text-lg" style="color: var(--text-secondary);">OSINT Username Scanner</p>
+        </header>
+        
+        <!-- Main Content Wrapper -->
+        <main class="flex-grow flex flex-col items-center">
+            <!-- Input Section -->
+            <div class="w-full max-w-xl glass-panel p-8 mb-8">
+                <div class="input-wrapper">
+                    <input type="text" id="username-input" class="input-field w-full p-4 text-lg text-center" placeholder="Enter Target Username">
+                </div>
+                <button id="scan-btn" class="scan-button w-full mt-4 font-bold py-3 px-4 text-lg">
+                    <i class="fas fa-search mr-2"></i>INITIATE SCAN
+                </button>
+            </div>
+
+            <!-- Loader -->
+            <div id="loader" class="hidden my-8 flex flex-col items-center justify-center gap-4">
+                <p id="scan-effect" class="text-lg tracking-widest"></p>
+                <p id="scan-status-text" class="text-sm tracking-widest" style="color: var(--text-secondary);"></p>
+            </div>
+            
+            <!-- Results Section -->
+            <div id="results-section" class="hidden w-full max-w-7xl">
+                <!-- Found Section -->
+                <div id="found-section" class="mb-12">
+                    <h2 class="text-3xl font-bold text-center mb-6" style="color: var(--glow-green);">[+] ACCOUNTS FOUND</h2>
+                    <div class="swiper-container md:hidden">
+                        <div id="found-carousel" class="swiper-wrapper py-4"></div>
+                        <div class="swiper-button-next"></div>
+                        <div class="swiper-button-prev"></div>
+                    </div>
+                    <div id="found-grid" class="hidden md:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+                </div>
+
+                <!-- Not Found Section -->
+                <div id="not-found-section" class="mb-12">
+                    <h2 class="text-2xl font-bold text-center mb-6" style="color: var(--glow-red);">[-] ACCOUNTS NOT FOUND</h2>
+                    <div id="not-found-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+                </div>
+                
+                <!-- Analysis Summary & Actions -->
+                <div id="analysis-summary" class="glass-panel p-6 mt-8 border-t border-[var(--border-color)] pt-6">
+                    <h3 class="text-2xl font-bold text-center mb-4" style="color: var(--glow-purple);">Summary</h3>
+                    <div class="flex flex-col md:flex-row items-center justify-center gap-8">
+                        <div class="flex-1 text-center">
+                            <h4 class="text-lg" style="color: var(--text-secondary);">Presence Score</h4>
+                            <p id="presence-score" class="text-6xl font-bold" style="color: var(--glow-cyan);">0/20</p>
+                        </div>
+                        <div class="w-full md:w-1/3 h-48 md:h-56">
+                            <canvas id="presence-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 justify-center mt-6">
+                        <button id="download-json" class="bg-gray-800 hover:bg-gray-700 text-cyan-300 font-bold py-2 px-4 rounded-lg transition-colors duration-300 border border-cyan-500">
+                            <i class="fas fa-download mr-2"></i>Export JSON
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="text-center text-gray-500 mt-12 py-4">
+            <p>Built by lakxitt</p>
+            <div class="flex justify-center gap-4 mt-2">
+                <a href="https://x.com/lakxitt?s=21" target="_blank" class="hover:text-cyan-400 transition-colors">
+                    <i class="fab fa-twitter text-xl"></i>
+                </a>
+                <a href="https://www.instagram.com/lakxitt_?igsh=NGR0aW11bnR5YnVl&utm_source=qr" target="_blank" class="hover:text-cyan-400 transition-colors">
+                    <i class="fab fa-instagram text-xl"></i>
+                </a>
+            </div>
+        </footer>
+        
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Title Animation Logic ---
+        const titleEl = document.getElementById('main-title');
+        const titleText = "SocialScope";
+        titleEl.innerHTML = titleText.split('').map((char, index) =>
+            `<span class="char" style="animation-delay: ${index * 0.05}s">${char === ' ' ? '&nbsp;' : char}</span>`
+        ).join('');
+
+        // --- DOM Elements ---
+        const usernameInput = document.getElementById('username-input');
+        const scanBtn = document.getElementById('scan-btn');
+        const loader = document.getElementById('loader');
+        const scanEffectEl = document.getElementById('scan-effect');
+        const scanStatusText = document.getElementById('scan-status-text');
+        const resultsSection = document.getElementById('results-section');
+        const foundGrid = document.getElementById('found-grid');
+        const notFoundGrid = document.getElementById('not-found-grid');
+        const foundCarousel = document.getElementById('found-carousel');
+        const presenceScoreEl = document.getElementById('presence-score');
+        const downloadJsonBtn = document.getElementById('download-json');
+        const chartCanvas = document.getElementById('presence-chart');
+
+        // --- State ---
+        let presenceChart = null;
+        let scanResults = [];
+        let swiper = null;
+
+        // --- Platform Data ---
+        const platforms = [
+            { name: 'X (Twitter)', url: 'https://www.twitter.com/{username}', icon: 'fab fa-xing' },
+            { name: 'Instagram', url: 'https://www.instagram.com/{username}', icon: 'fab fa-instagram' },
+            { name: 'Telegram', url: 'https://t.me/{username}', icon: 'fab fa-telegram' },
+            { name: 'YouTube', url: 'https://www.youtube.com/@{username}', icon: 'fab fa-youtube' },
+            { name: 'LinkedIn', url: 'https://www.linkedin.com/in/{username}', icon: 'fab fa-linkedin' },
+            { name: 'GitHub', url: 'https://www.github.com/{username}', icon: 'fab fa-github' },
+            { name: 'Facebook', url: 'https://www.facebook.com/{username}', icon: 'fab fa-facebook' },
+            { name: 'Reddit', url: 'https://www.reddit.com/user/{username}', icon: 'fab fa-reddit-alien' },
+            { name: 'TikTok', url: 'https://www.tiktok.com/@{username}', icon: 'fab fa-tiktok' },
+            { name: 'Twitch', url: 'https://www.twitch.tv/{username}', icon: 'fab fa-twitch' },
+            { name: 'Pinterest', url: 'https://www.pinterest.com/{username}', icon: 'fab fa-pinterest' },
+            { name: 'Spotify', url: 'https://open.spotify.com/user/{username}', icon: 'fab fa-spotify' },
+            { name: 'Vimeo', url: 'https://vimeo.com/{username}', icon: 'fab fa-vimeo-v' },
+            { name: 'Dribbble', url: 'https://dribbble.com/{username}', icon: 'fab fa-dribbble' },
+            { name: 'Behance', url: 'https://www.behance.net/{username}', icon: 'fab fa-behance' },
+            { name: 'Medium', url: 'https://medium.com/@{username}', icon: 'fab fa-medium' },
+            { name: 'Steam', url: 'https://steamcommunity.com/id/{username}', icon: 'fab fa-steam' },
+            { name: 'SoundCloud', url: 'https://soundcloud.com/{username}', icon: 'fab fa-soundcloud' },
+            { name: 'DeviantArt', url: 'https://www.deviantart.com/{username}', icon: 'fab fa-deviantart' },
+            { name: 'Flickr', url: 'https://www.flickr.com/people/{username}', icon: 'fab fa-flickr' }
+        ];
+        const totalPlatforms = platforms.length;
+
+        // --- Functions ---
+        const textScramble = (el, text, onComplete = () => {}) => {
+            let chars = '!<>-_\\/[]{}—=+*^?#';
+            let frame = 0;
+            let frameRequest;
+            const queue = text.split('').map((to, i) => ({
+                from: chars[Math.floor(Math.random() * chars.length)],
+                to,
+                start: Math.floor(Math.random() * 40),
+                end: Math.floor(Math.random() * 40) + 20,
+            }));
+            const update = () => {
+                let output = '';
+                let complete = 0;
+                for (let i = 0, n = queue.length; i < n; i++) {
+                    let { from, to, start, end, char } = queue[i];
+                    if (frame >= end) {
+                        complete++;
+                        output += to;
+                    } else if (frame >= start) {
+                        if (!char || Math.random() < 0.28) {
+                            char = chars[Math.floor(Math.random() * chars.length)];
+                            queue[i].char = char;
+                        }
+                        output += `<span class="opacity-50">${char}</span>`;
+                    } else {
+                        output += from;
+                    }
+                }
+                el.innerHTML = output;
+                if (complete === queue.length) {
+                    cancelAnimationFrame(frameRequest);
+                    onComplete();
+                    return;
+                }
+                frameRequest = requestAnimationFrame(update);
+                frame++;
+            };
+            update();
+        };
+
+        const checkProfile = async (url) => {
+            try {
+                await fetch(url, { mode: 'no-cors', method: 'HEAD' });
+                return true; 
+            } catch (error) {
+                return false;
+            }
+        };
+        
+        const createResultCard = (platform, username, isSmall = false) => {
+            const profileUrl = platform.url.replace('{username}', username);
+            const statusClass = platform.status === 'found' ? 'found' : 'not-found';
+            
+            if (isSmall) {
+                return `
+                    <div class="result-card glass-panel p-3 flex flex-col items-center justify-center h-28 ${statusClass}">
+                        <i class="${platform.icon} text-3xl" style="color: var(--glow-cyan);"></i>
+                        <h3 class="font-bold text-sm text-center mt-2">${platform.name}</h3>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="result-card glass-panel p-4 flex flex-col items-center justify-center h-48 ${statusClass}">
+                    <i class="${platform.icon} text-5xl mb-3" style="color: var(--glow-cyan);"></i>
+                    <h3 class="font-bold text-xl text-center">${platform.name}</h3>
+                    <a href="${profileUrl}" target="_blank" rel="noopener noreferrer" class="mt-auto text-sm items-center gap-2 text-cyan-400 hover:underline">
+                        Visit Profile <i class="fas fa-external-link-alt text-xs"></i>
+                    </a>
+                </div>
+            `;
+        };
+        
+        const initSwiper = () => {
+            if (swiper) swiper.destroy(true, true);
+            swiper = new Swiper('.swiper-container', {
+                slidesPerView: 1,
+                spaceBetween: 16,
+                navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
+                breakpoints: { 380: { slidesPerView: 2 }, 640: { slidesPerView: 3 } }
+            });
+        };
+
+        const updateStats = (foundCount, totalCount) => {
+            presenceScoreEl.textContent = `${foundCount}/${totalCount}`;
+            const notFoundCount = totalCount - foundCount;
+            const chartData = { labels: ['Found', 'Not Found'], datasets: [{ data: [foundCount, notFoundCount], backgroundColor: ['var(--glow-green)', 'var(--glow-red)'], borderColor: 'var(--bg-dark)', borderWidth: 4, borderRadius: 5 }] };
+            if (presenceChart) presenceChart.destroy();
+            presenceChart = new Chart(chartCanvas, { type: 'doughnut', data: chartData, options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { display: false } } } });
+        };
+        
+        const handleScan = async () => {
+            const username = usernameInput.value.trim();
+            if (!username) { 
+                alert('Please enter a username.'); 
+                return; 
+            }
+
+            scanBtn.disabled = true;
+            scanBtn.classList.add('opacity-50');
+            resultsSection.classList.add('hidden');
+            
+            loader.classList.remove('hidden');
+            textScramble(scanEffectEl, 'ANALYZING...');
+
+            let foundCount = 0;
+            let checkedCount = 0;
+            scanResults = [];
+
+            const checkPromises = platforms.map(async (platform) => {
+                const isFound = await checkProfile(platform.url.replace('{username}', username));
+                scanResults.push({ ...platform, status: isFound ? 'found' : 'not_found' });
+                if (isFound) foundCount++;
+                checkedCount++;
+                const progress = (checkedCount / totalPlatforms) * 100;
+                scanStatusText.textContent = `Scanning... ${progress.toFixed(0)}%`;
+            });
+
+            await Promise.all(checkPromises);
+            
+            textScramble(scanEffectEl, 'COMPLETE', () => {
+                setTimeout(() => {
+                    loader.classList.add('hidden');
+
+                    const foundPlatforms = scanResults.filter(res => res.status === 'found');
+                    const notFoundPlatforms = scanResults.filter(res => res.status === 'not_found');
+
+                    foundGrid.innerHTML = foundPlatforms.map(res => createResultCard(res, username)).join('');
+                    foundCarousel.innerHTML = foundPlatforms.map(res => `<div class="swiper-slide">${createResultCard(res, username)}</div>`).join('');
+                    notFoundGrid.innerHTML = notFoundPlatforms.map(res => createResultCard(res, username, true)).join('');
+                    
+                    initSwiper();
+                    
+                    resultsSection.classList.remove('hidden');
+                    updateStats(foundCount, totalPlatforms);
+
+                    scanBtn.disabled = false;
+                    scanBtn.classList.remove('opacity-50');
+                }, 1000);
+            });
+        };
+
+        // --- Event Listeners ---
+        scanBtn.addEventListener('click', handleScan);
+        usernameInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleScan(); });
+        downloadJsonBtn.addEventListener('click', () => {
+            if (scanResults.length === 0) { alert('No results to download.'); return; }
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(scanResults, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", `${usernameInput.value.trim()}_report.json`);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        });
+
+        // --- Initial Load ---
+        usernameInput.focus();
+    });
+    </script>
+</body>
+</html>
